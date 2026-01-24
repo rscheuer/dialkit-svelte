@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Build output (regenerated on install)
+dist/
+
+# Example/demo (lives on personal site)
+example/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Claude notes
+.claude-plan.md
