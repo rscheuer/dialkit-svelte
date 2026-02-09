@@ -1,39 +1,15 @@
 import { useState, ReactNode } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { DialStore } from '../store/DialStore';
 
 interface FolderProps {
   title: string;
   children: ReactNode;
   defaultOpen?: boolean;
   isRoot?: boolean;
-  panelId?: string;
 }
 
-export function Folder({ title, children, defaultOpen = true, isRoot = false, panelId }: FolderProps) {
+export function Folder({ title, children, defaultOpen = true, isRoot = false }: FolderProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!panelId) return;
-
-    const values = DialStore.getValues(panelId);
-    const jsonStr = JSON.stringify(values, null, 2);
-
-    // Build instruction for Claude Code
-    const instruction = `Update the useDialKit configuration for "${title}" with these values:
-
-\`\`\`json
-${jsonStr}
-\`\`\`
-
-Apply these values as the new defaults in the useDialKit call.`;
-
-    navigator.clipboard.writeText(instruction);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  };
 
   const iconTransition = { type: 'spring' as const, visualDuration: 0.4, bounce: 0.1 };
 
@@ -44,63 +20,6 @@ Apply these values as the new defaults in the useDialKit call.`;
           <span className={`dialkit-folder-title ${isRoot ? 'dialkit-folder-title-root' : ''}`}>
             {title}
           </span>
-          {isRoot && panelId && (
-            <motion.button
-              className="dialkit-folder-copy"
-              onClick={handleCopy}
-              title="Copy parameters"
-              initial={false}
-              animate={{
-                opacity: isOpen ? 1 : 0,
-                scale: isOpen ? 1 : 0.7,
-                filter: isOpen ? 'blur(0px)' : 'blur(6px)',
-              }}
-              transition={iconTransition}
-              style={{ pointerEvents: isOpen ? 'auto' : 'none' }}
-            >
-              <div style={{ position: 'relative', width: 14, height: 14 }}>
-                {/* Copy icon */}
-                <motion.svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  style={{ position: 'absolute', inset: 0 }}
-                  initial={false}
-                  animate={{
-                    opacity: copied ? 0 : 1,
-                    scale: copied ? 0.7 : 1,
-                    filter: copied ? 'blur(6px)' : 'blur(0px)',
-                  }}
-                  transition={iconTransition}
-                >
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                </motion.svg>
-                {/* Check icon */}
-                <motion.svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  style={{ position: 'absolute', inset: 0 }}
-                  initial={false}
-                  animate={{
-                    opacity: copied ? 1 : 0,
-                    scale: copied ? 1 : 0.7,
-                    filter: copied ? 'blur(0px)' : 'blur(6px)',
-                  }}
-                  transition={iconTransition}
-                >
-                  <polyline points="20 6 9 17 4 12" />
-                </motion.svg>
-              </div>
-            </motion.button>
-          )}
         </div>
         {isRoot ? (
           // Root panel uses minus/plus icons with crossfade

@@ -46,7 +46,7 @@
   -webkit-backdrop-filter: blur(var(--dial-backdrop-blur));
   padding: 10px 12px 12px 12px;
   transform: translateZ(0);
-  max-height: calc(100vh - 32px);
+  max-height: calc(100vh - 80px);
   overflow-y: auto;
 }
 
@@ -97,7 +97,6 @@
 .dialkit-folder:last-child:not(.dialkit-folder-root) {
   padding-bottom: 0;
   margin-bottom: 0;
-  border-bottom: none;
 }
 
 .dialkit-folder-root {
@@ -172,7 +171,8 @@
 }
 
 .dialkit-folder-content {
-  overflow: hidden;
+  overflow-x: visible;
+  overflow-y: clip;
 }
 
 .dialkit-folder-inner {
@@ -181,56 +181,71 @@
   gap: 6px;
 }
 
-/* Non-root folder header - no bottom padding, spacing handled by content */
-.dialkit-folder:not(.dialkit-folder-root) > .dialkit-folder-header {
+/* Non-root folders - bottom HR divider only */
+.dialkit-folder:not(.dialkit-folder-root) {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   padding-bottom: 0;
+  margin-bottom: 0;
 }
 
-/* Non-root folder when CLOSED - even spacing above and below title */
-.dialkit-folder:not(.dialkit-folder-root):not(:has(.dialkit-folder-content)) {
-  padding-bottom: 14px;
+/* Adjacent non-root folders collapse gap for single-divider stacking */
+.dialkit-folder:not(.dialkit-folder-root) + .dialkit-folder:not(.dialkit-folder-root) {
+  margin-top: -6px;
 }
 
-/* Non-root folder when OPEN - 16px before the divider */
+/* Non-root folder header - match row height */
+.dialkit-folder:not(.dialkit-folder-root) > .dialkit-folder-header {
+  min-height: 36px;
+  padding: 0;
+}
+
+/* Non-root folder when OPEN - extra padding before bottom HR */
 .dialkit-folder:not(.dialkit-folder-root):has(.dialkit-folder-content) {
-  padding-bottom: 16px;
+  padding-bottom: 6px;
 }
 
-/* Content padding - 8px between title and first item */
-.dialkit-folder:not(.dialkit-folder-root) .dialkit-folder-inner {
-  padding-top: 8px;
-}
+/* Content spacing handled by folder-inner gap */
 
 
 /* Slider */
-.dialkit-slider {
+.dialkit-slider-wrapper {
   position: relative;
   height: 36px;
+}
+
+.dialkit-slider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   cursor: pointer;
   user-select: none;
   overflow: hidden;
   background: var(--dial-surface);
   border-radius: var(--dial-radius);
+  touch-action: none;
 }
 
 .dialkit-slider-hashmarks {
   position: absolute;
   inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 12.5%;
   pointer-events: none;
 }
 
 .dialkit-slider-hashmark {
-  font-size: 8px;
-  color: rgba(255, 255, 255, 0);
-  transition: color 0.15s;
+  position: absolute;
+  top: 50%;
+  width: 1px;
+  height: 8px;
+  border-radius: 999px;
+  transform: translateX(-50%) translateY(-50%);
+  background: rgba(255, 255, 255, 0);
+  transition: background 200ms;
 }
 
 .dialkit-slider-active .dialkit-slider-hashmark {
-  color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .dialkit-slider-fill {
@@ -245,11 +260,9 @@
 .dialkit-slider-handle {
   position: absolute;
   top: 50%;
-  transform: translateY(-50%);
-  width: 2px;
-  height: 20px;
-  border-radius: 1px;
-  transition: background 0.15s;
+  width: 3px;
+  height: 24px;
+  border-radius: 999px;
   pointer-events: none;
 }
 
@@ -309,7 +322,7 @@
   position: relative;
   display: flex;
   padding: 2px;
-  background: var(--dial-surface);
+  background: transparent;
   border-radius: var(--dial-radius);
 }
 
@@ -327,7 +340,7 @@
   position: relative;
   z-index: 1;
   flex: 1;
-  padding: 8px 16px;
+  padding: 8px 12px;
   font-family: inherit;
   font-size: 13px;
   font-weight: 500;
@@ -398,6 +411,7 @@
 /* Button Group */
 .dialkit-button-group {
   display: flex;
+  flex-direction: column;
   gap: 6px;
 }
 
@@ -430,6 +444,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  padding: 2px 2px 2px 12px;
+  background: var(--dial-surface);
+  border-radius: var(--dial-radius);
 }
 
 .dialkit-labeled-control-label {
@@ -440,7 +457,6 @@
 }
 
 .dialkit-labeled-control .dialkit-segmented {
-  width: 160px;
   flex-shrink: 0;
 }
 
@@ -485,4 +501,474 @@
   border-radius: var(--dial-radius);
   background: var(--dial-surface);
   overflow: visible;
+}
+
+/* Panel Wrapper (contains panel + toolbar) */
+.dialkit-panel-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Panel Toolbar */
+.dialkit-panel-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--dial-glass-bg);
+  border: 1px solid var(--dial-border);
+  border-radius: 10px;
+}
+
+.dialkit-toolbar-copy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: var(--dial-surface);
+  border: none;
+  border-radius: var(--dial-radius);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.dialkit-toolbar-copy:hover {
+  background: var(--dial-surface-hover);
+}
+
+.dialkit-toolbar-copy svg {
+  width: 14px;
+  height: 14px;
+  color: var(--dial-text-section);
+}
+
+/* Text Control */
+.dialkit-text-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--dial-surface);
+  border-radius: var(--dial-radius);
+}
+
+.dialkit-text-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--dial-text-label);
+  flex-shrink: 0;
+}
+
+.dialkit-text-input {
+  flex: 1;
+  min-width: 0;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--dial-text-primary);
+  background: transparent;
+  border: none;
+  padding: 0;
+  outline: none;
+  text-align: right;
+  cursor: text;
+}
+
+.dialkit-text-input::placeholder {
+  color: var(--dial-text-tertiary);
+}
+
+/* Select Control - Full-width row */
+.dialkit-select-row {
+  position: relative;
+}
+
+.dialkit-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--dial-text-label);
+  background: var(--dial-surface);
+  border: none;
+  border-radius: var(--dial-radius);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.dialkit-select-trigger:hover {
+  background: var(--dial-surface-hover);
+}
+
+.dialkit-select-trigger[data-open="true"] {
+  background: var(--dial-surface-active);
+}
+
+.dialkit-select-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--dial-text-label);
+  flex-shrink: 0;
+}
+
+.dialkit-select-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dialkit-select-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--dial-text-label);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dialkit-select-chevron {
+  width: 20px;
+  height: 20px;
+  padding: 4px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+/* Select Dropdown */
+.dialkit-select-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--dial-glass-bg);
+  border: 1px solid var(--dial-border);
+  border-radius: var(--dial-radius);
+  padding: 4px;
+  z-index: 100;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.dialkit-select-option {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--dial-text-label);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, color 0.15s;
+}
+
+.dialkit-select-option:hover {
+  background: var(--dial-surface-hover);
+}
+
+.dialkit-select-option[data-selected="true"] {
+  color: var(--dial-text-primary);
+  background: var(--dial-surface-active);
+}
+
+/* Color Control */
+.dialkit-color-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--dial-surface);
+  border-radius: var(--dial-radius);
+}
+
+.dialkit-color-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--dial-text-label);
+  flex-shrink: 0;
+}
+
+.dialkit-color-inputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dialkit-color-hex {
+  font-size: 13px;
+  font-weight: 500;
+  font-family: ui-monospace, 'SF Mono', 'Courier New', monospace;
+  color: var(--dial-text-label);
+  cursor: text;
+  border-bottom: 1px solid transparent;
+  padding-bottom: 1px;
+  transition: border-color 0.15s;
+}
+
+.dialkit-color-hex:hover {
+  border-bottom-color: var(--dial-text-label);
+}
+
+.dialkit-color-hex-input {
+  width: 7ch;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: ui-monospace, 'SF Mono', 'Courier New', monospace;
+  color: var(--dial-text-primary);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--dial-text-label);
+  padding: 0 0 1px 0;
+  outline: none;
+  text-transform: uppercase;
+}
+
+.dialkit-color-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.dialkit-color-swatch:hover {
+  transform: scale(1.1);
+}
+
+.dialkit-color-picker-native {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Preset Manager */
+.dialkit-preset-manager {
+  position: relative;
+  flex: 1;
+}
+
+.dialkit-preset-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--dial-text-label);
+  background: var(--dial-surface);
+  border: none;
+  border-radius: var(--dial-radius);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.dialkit-preset-trigger:hover {
+  background: var(--dial-surface-hover);
+}
+
+.dialkit-preset-trigger[data-open="true"] {
+  background: var(--dial-surface-active);
+}
+
+.dialkit-preset-trigger[data-has-preset="true"] {
+  color: var(--dial-text-primary);
+}
+
+.dialkit-preset-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dialkit-preset-chevron {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.dialkit-preset-dropdown {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--dial-glass-bg);
+  border: 1px solid var(--dial-border);
+  border-radius: var(--dial-radius);
+  padding: 4px;
+  z-index: 100;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.dialkit-preset-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 4px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--dial-border);
+}
+
+.dialkit-preset-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.dialkit-preset-item:hover {
+  background: var(--dial-surface-hover);
+}
+
+.dialkit-preset-item[data-active="true"] {
+  background: var(--dial-surface-active);
+}
+
+.dialkit-preset-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--dial-text-label);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dialkit-preset-item[data-active="true"] .dialkit-preset-name {
+  color: var(--dial-text-primary);
+}
+
+.dialkit-preset-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.dialkit-preset-item:hover .dialkit-preset-delete {
+  opacity: 0.6;
+}
+
+.dialkit-preset-delete:hover {
+  opacity: 1 !important;
+}
+
+.dialkit-preset-delete svg {
+  width: 12px;
+  height: 12px;
+  color: var(--dial-text-secondary);
+  pointer-events: none;
+}
+
+.dialkit-preset-save-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--dial-text-label);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.dialkit-preset-save-btn:hover {
+  background: var(--dial-surface-hover);
+  color: var(--dial-text-primary);
+}
+
+.dialkit-preset-save-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+.dialkit-preset-save-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+}
+
+.dialkit-preset-input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--dial-text-primary);
+  background: var(--dial-surface);
+  border: 1px solid var(--dial-border);
+  border-radius: 6px;
+  outline: none;
+}
+
+.dialkit-preset-input:focus {
+  border-color: var(--dial-text-label);
+}
+
+.dialkit-preset-input::placeholder {
+  color: var(--dial-text-tertiary);
+}
+
+.dialkit-preset-confirm {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: var(--dial-surface);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.dialkit-preset-confirm:hover:not(:disabled) {
+  background: var(--dial-surface-hover);
+}
+
+.dialkit-preset-confirm:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.dialkit-preset-confirm svg {
+  width: 14px;
+  height: 14px;
+  color: var(--dial-text-label);
 }

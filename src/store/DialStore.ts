@@ -14,7 +14,24 @@ export type ActionConfig = {
   label?: string;
 };
 
-export type DialValue = number | boolean | string | SpringConfig | ActionConfig;
+export type SelectConfig = {
+  type: 'select';
+  options: (string | { value: string; label: string })[];
+  default?: string;
+};
+
+export type ColorConfig = {
+  type: 'color';
+  default?: string;
+};
+
+export type TextConfig = {
+  type: 'text';
+  default?: string;
+  placeholder?: string;
+};
+
+export type DialValue = number | boolean | string | SpringConfig | ActionConfig | SelectConfig | ColorConfig | TextConfig;
 
 export type DialConfig = {
   [key: string]: DialValue | [number, number, number] | DialConfig;
@@ -25,19 +42,27 @@ export type ResolvedValues<T extends DialConfig> = {
     ? number
     : T[K] extends SpringConfig
       ? SpringConfig
-      : T[K] extends DialConfig
-        ? ResolvedValues<T[K]>
-        : T[K];
+      : T[K] extends SelectConfig
+        ? string
+        : T[K] extends ColorConfig
+          ? string
+          : T[K] extends TextConfig
+            ? string
+            : T[K] extends DialConfig
+              ? ResolvedValues<T[K]>
+              : T[K];
 };
 
 export type ControlMeta = {
-  type: 'slider' | 'toggle' | 'spring' | 'folder' | 'action';
+  type: 'slider' | 'toggle' | 'spring' | 'folder' | 'action' | 'select' | 'color' | 'text';
   path: string;
   label: string;
   min?: number;
   max?: number;
   step?: number;
   children?: ControlMeta[];
+  options?: (string | { value: string; label: string })[];
+  placeholder?: string;
 };
 
 export type PanelConfig = {
@@ -50,6 +75,12 @@ export type PanelConfig = {
 type Listener = () => void;
 type ActionListener = (action: string) => void;
 
+export type Preset = {
+  id: string;
+  name: string;
+  values: Record<string, DialValue>;
+};
+
 // Stable empty object for unregistered panels (React 19 useSyncExternalStore requirement)
 const EMPTY_VALUES: Record<string, DialValue> = Object.freeze({});
 
@@ -59,6 +90,8 @@ class DialStoreClass {
   private globalListeners: Set<Listener> = new Set();
   private snapshots: Map<string, Record<string, DialValue>> = new Map();
   private actionListeners: Map<string, Set<ActionListener>> = new Map();
+  private presets: Map<string, Preset[]> = new Map();
+  private activePreset: Map<string, string | null> = new Map();
 
   registerPanel(id: string, name: string, config: DialConfig): void {
     const controls = this.parseConfig(config, '');
@@ -153,6 +186,73 @@ class DialStoreClass {
     this.actionListeners.get(panelId)?.forEach(fn => fn(path));
   }
 
+  savePreset(panelId: string, name: string): string {
+    const panel = this.panels.get(panelId);
+    if (!panel) throw new Error(`Panel ${panelId} not found`);
+
+    const id = `preset-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    const preset: Preset = {
+      id,
+      name,
+      values: { ...panel.values },
+    };
+
+    const existing = this.presets.get(panelId) ?? [];
+    this.presets.set(panelId, [...existing, preset]);
+    this.activePreset.set(panelId, id);
+
+    // Force re-render by creating new snapshot reference
+    this.snapshots.set(panelId, { ...panel.values });
+    this.notify(panelId);
+
+    return id;
+  }
+
+  loadPreset(panelId: string, presetId: string): void {
+    const panel = this.panels.get(panelId);
+    if (!panel) return;
+
+    const presets = this.presets.get(panelId) ?? [];
+    const preset = presets.find(p => p.id === presetId);
+    if (!preset) return;
+
+    // Apply preset values
+    panel.values = { ...preset.values };
+    this.snapshots.set(panelId, { ...panel.values });
+    this.activePreset.set(panelId, presetId);
+    this.notify(panelId);
+  }
+
+  deletePreset(panelId: string, presetId: string): void {
+    const presets = this.presets.get(panelId) ?? [];
+    this.presets.set(panelId, presets.filter(p => p.id !== presetId));
+
+    // Clear active if deleted
+    if (this.activePreset.get(panelId) === presetId) {
+      this.activePreset.set(panelId, null);
+    }
+
+    // Force re-render by creating new snapshot reference
+    const panel = this.panels.get(panelId);
+    if (panel) {
+      this.snapshots.set(panelId, { ...panel.values });
+    }
+    this.notify(panelId);
+  }
+
+  getPresets(panelId: string): Preset[] {
+    return this.presets.get(panelId) ?? [];
+  }
+
+  getActivePresetId(panelId: string): string | null {
+    return this.activePreset.get(panelId) ?? null;
+  }
+
+  clearActivePreset(panelId: string): void {
+    this.activePreset.set(panelId, null);
+    this.notify(panelId);
+  }
+
   private notify(panelId: string): void {
     this.listeners.get(panelId)?.forEach(fn => fn());
   }
@@ -188,6 +288,19 @@ class DialStoreClass {
         controls.push({ type: 'spring', path, label });
       } else if (this.isActionConfig(value)) {
         controls.push({ type: 'action', path, label: (value as ActionConfig).label || label });
+      } else if (this.isSelectConfig(value)) {
+        controls.push({ type: 'select', path, label, options: value.options });
+      } else if (this.isColorConfig(value)) {
+        controls.push({ type: 'color', path, label });
+      } else if (this.isTextConfig(value)) {
+        controls.push({ type: 'text', path, label, placeholder: value.placeholder });
+      } else if (typeof value === 'string') {
+        // Auto-detect: hex color vs text
+        if (this.isHexColor(value)) {
+          controls.push({ type: 'color', path, label });
+        } else {
+          controls.push({ type: 'text', path, label });
+        }
       } else if (typeof value === 'object' && value !== null) {
         // Nested object becomes a folder
         controls.push({
@@ -217,6 +330,15 @@ class DialStoreClass {
       } else if (this.isActionConfig(value)) {
         // Actions don't need stored values - they're just triggers
         values[path] = value;
+      } else if (this.isSelectConfig(value)) {
+        // Use default or first option's value
+        const firstOption = value.options[0];
+        const firstValue = typeof firstOption === 'string' ? firstOption : firstOption.value;
+        values[path] = value.default ?? firstValue;
+      } else if (this.isColorConfig(value)) {
+        values[path] = value.default ?? '#000000';
+      } else if (this.isTextConfig(value)) {
+        values[path] = value.default ?? '';
       } else if (typeof value === 'object' && value !== null) {
         Object.assign(values, this.flattenValues(value as DialConfig, path));
       }
@@ -243,6 +365,39 @@ class DialStoreClass {
     );
   }
 
+  private isSelectConfig(value: unknown): value is SelectConfig {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      'type' in value &&
+      (value as SelectConfig).type === 'select' &&
+      'options' in value &&
+      Array.isArray((value as SelectConfig).options)
+    );
+  }
+
+  private isColorConfig(value: unknown): value is ColorConfig {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      'type' in value &&
+      (value as ColorConfig).type === 'color'
+    );
+  }
+
+  private isTextConfig(value: unknown): value is TextConfig {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      'type' in value &&
+      (value as TextConfig).type === 'text'
+    );
+  }
+
+  private isHexColor(value: string): boolean {
+    return /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/.test(value);
+  }
+
   private formatLabel(key: string): string {
     // Convert camelCase to Title Case
     return key
@@ -256,13 +411,13 @@ class DialStoreClass {
     if (value >= 0 && value <= 1) {
       return { min: 0, max: 1, step: 0.01 };
     } else if (value >= 0 && value <= 10) {
-      return { min: 0, max: value * 2 || 10, step: 0.1 };
+      return { min: 0, max: value * 3 || 10, step: 0.1 };
     } else if (value >= 0 && value <= 100) {
-      return { min: 0, max: value * 2 || 100, step: 1 };
+      return { min: 0, max: value * 3 || 100, step: 1 };
     } else if (value >= 0) {
-      return { min: 0, max: value * 2 || 1000, step: 10 };
+      return { min: 0, max: value * 3 || 1000, step: 10 };
     } else {
-      return { min: value * 2, max: -value * 2, step: 1 };
+      return { min: value * 3, max: -value * 3, step: 1 };
     }
   }
 

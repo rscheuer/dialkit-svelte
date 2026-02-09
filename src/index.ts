@@ -9,17 +9,24 @@ export type { DialPosition } from './components/DialRoot';
 // Individual components (for advanced usage)
 export { Slider } from './components/Slider';
 export { Toggle } from './components/Toggle';
-export { SegmentedControl } from './components/SegmentedControl';
 export { Folder } from './components/Folder';
 export { ButtonGroup } from './components/ButtonGroup';
 export { SpringControl } from './components/SpringControl';
 export { SpringVisualization } from './components/SpringVisualization';
+export { TextControl } from './components/TextControl';
+export { SelectControl } from './components/SelectControl';
+export { ColorControl } from './components/ColorControl';
+export { PresetManager } from './components/PresetManager';
 
 // Store (for advanced usage)
 export { DialStore } from './store/DialStore';
 export type {
   SpringConfig,
   ActionConfig,
+  SelectConfig,
+  ColorConfig,
+  TextConfig,
+  Preset,
   DialValue,
   DialConfig,
   ResolvedValues,

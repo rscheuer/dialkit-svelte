@@ -2,21 +2,14 @@
 
 Real-time parameter tweaking for React + Motion.
 
----
-
-## Installation
+## Quick Start
 
 ```bash
 npm install dialkit motion
 ```
 
----
-
-## Setup
-
-Add `<DialRoot />` once in your app layout:
-
 ```tsx
+// layout.tsx
 import { DialRoot } from 'dialkit';
 import 'dialkit/styles.css';
 
@@ -25,51 +18,35 @@ export default function Layout({ children }) {
     <html>
       <body>
         {children}
-        <DialRoot position="top-right" />
+        <DialRoot />
       </body>
     </html>
   );
 }
 ```
 
----
-
-## Usage
-
 ```tsx
+// component.tsx
 import { useDialKit } from 'dialkit';
-import { motion } from 'motion/react';
 
 function Card() {
-  const params = useDialKit('Card', {
+  const p = useDialKit('Card', {
     blur: [24, 0, 100],
-    opacity: [0.8, 0, 1],
-    scale: 1.18,
-    spring: {
-      type: 'spring',
-      visualDuration: 0.3,
-      bounce: 0.2,
-    },
+    scale: 1.2,
+    color: '#ff5500',
   });
 
   return (
-    <motion.div
-      style={{
-        filter: `blur(${params.blur}px)`,
-        opacity: params.opacity,
-      }}
-      animate={{ scale: params.scale }}
-      transition={params.spring}
-    />
+    <div style={{ filter: `blur(${p.blur}px)`, color: p.color }}>
+      ...
+    </div>
   );
 }
 ```
 
 ---
 
-## API Reference
-
-### useDialKit
+## useDialKit
 
 ```tsx
 const params = useDialKit(name, config, options?)
@@ -77,70 +54,138 @@ const params = useDialKit(name, config, options?)
 
 | Param | Type | Description |
 |-------|------|-------------|
-| `name` | `string` | Panel title |
-| `config` | `DialConfig` | Parameter definitions |
-| `options.onAction` | `(action: string) => void` | Callback for action buttons |
+| `name` | `string` | Panel title displayed in the UI |
+| `config` | `object` | Parameter definitions (see Config Types) |
+| `options.onAction` | `(path: string) => void` | Callback when action buttons are clicked |
 
-### Config Types
+**Returns** an object matching your config shape with live values.
 
-| Format | Control | Example |
-|--------|---------|---------|
-| `[default, min, max]` | Slider | `blur: [24, 0, 100]` |
-| `number` | Slider (auto range) | `scale: 1.18` |
-| `boolean` | Toggle | `enabled: true` |
-| `{ type: 'spring', ... }` | Spring editor | See below |
-| `{ type: 'action' }` | Button | `reset: { type: 'action' }` |
-| `{ nested: ... }` | Folder | Nest any config |
+---
 
-### Spring Config
+## Config Types
 
-Two modes available:
+### Slider
 
 ```tsx
-// Time mode
-spring: {
-  type: 'spring',
-  visualDuration: 0.3,
-  bounce: 0.2,
-}
+blur: [24, 0, 100]      // [default, min, max]
+scale: 1.2              // auto-infers range (0 to value×3)
+```
 
-// Physics mode
-spring: {
-  type: 'spring',
-  stiffness: 200,
-  damping: 25,
-  mass: 1,
+Values 0–1 are treated as normalized (range stays 0–1).
+
+### Toggle
+
+```tsx
+enabled: true
+```
+
+### Text
+
+```tsx
+title: 'Hello'                                    // auto-detected
+subtitle: { type: 'text', placeholder: '...' }    // explicit
+```
+
+Non-hex strings auto-detect as text inputs.
+
+### Color
+
+```tsx
+color: '#ff5500'                          // auto-detected
+bg: { type: 'color', default: '#000' }    // explicit
+```
+
+Hex strings (#RGB, #RRGGBB, #RRGGBBAA) auto-detect as color pickers.
+
+### Select
+
+```tsx
+theme: {
+  type: 'select',
+  options: ['light', 'dark', 'system'],
+  default: 'dark',
 }
 ```
 
-### Actions
+Options can be strings or `{ value, label }` objects.
 
-Trigger callbacks from the panel:
+### Spring
 
 ```tsx
-const params = useDialKit('Controls', {
-  next: { type: 'action' },
-  previous: { type: 'action' },
+// Time-based
+spring: { type: 'spring', visualDuration: 0.3, bounce: 0.2 }
+
+// Physics-based
+spring: { type: 'spring', stiffness: 200, damping: 25, mass: 1 }
+```
+
+Visual editor with animation preview. Integrates directly with Motion.
+
+### Action
+
+```tsx
+const p = useDialKit('Controls', {
+  reset: { type: 'action', label: 'Reset' },
 }, {
-  onAction: (action) => {
-    if (action === 'next') goNext();
-    if (action === 'previous') goPrevious();
+  onAction: (path) => {
+    if (path === 'reset') handleReset();
   },
 });
 ```
 
-### DialRoot
+### Folder
+
+```tsx
+shadow: {
+  blur: [10, 0, 50],
+  color: '#000',
+}
+// Access: params.shadow.blur
+```
+
+Nested objects become collapsible folders.
+
+---
+
+## DialRoot
 
 ```tsx
 <DialRoot position="top-right" />
 ```
 
-| Position | |
-|----------|--|
-| `top-right` | Default |
-| `top-left` | |
-| `bottom-right` | |
-| `bottom-left` | |
+| Prop | Type | Default |
+|------|------|---------|
+| `position` | `'top-right' \| 'top-left' \| 'bottom-right' \| 'bottom-left'` | `'top-right'` |
+
+Mount once at your app root.
+
+---
+
+## Features
+
+**Presets** — Save/load parameter snapshots during your session. Click the Presets dropdown in the toolbar.
+
+**Copy** — Export current values as JSON. Click the copy icon in the toolbar.
+
+**Auto-detection** — Strings become text inputs, hex strings become color pickers.
+
+---
+
+## Types
+
+```tsx
+import type {
+  SpringConfig,
+  SelectConfig,
+  ColorConfig,
+  TextConfig,
+  ActionConfig,
+  DialConfig,
+  ResolvedValues,
+} from 'dialkit';
+```
+
+Values are fully typed. `params.blur` infers as `number`, `params.color` as `string`, etc.
 
 ---
 

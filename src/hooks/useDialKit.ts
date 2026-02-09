@@ -1,5 +1,5 @@
 import { useEffect, useId, useSyncExternalStore, useRef } from 'react';
-import { DialStore, DialConfig, DialValue, ResolvedValues, SpringConfig } from '../store/DialStore';
+import { DialStore, DialConfig, DialValue, ResolvedValues, SpringConfig, SelectConfig, ColorConfig, TextConfig, ActionConfig } from '../store/DialStore';
 
 export interface UseDialOptions {
   onAction?: (action: string) => void;
@@ -58,6 +58,18 @@ function buildResolvedValues(
       result[key] = flatValues[path] ?? configValue;
     } else if (isSpringConfig(configValue)) {
       result[key] = flatValues[path] ?? configValue;
+    } else if (isActionConfig(configValue)) {
+      result[key] = flatValues[path] ?? configValue;
+    } else if (isSelectConfig(configValue)) {
+      // Select config resolves to string value
+      const defaultValue = configValue.default ?? getFirstOptionValue(configValue.options);
+      result[key] = flatValues[path] ?? defaultValue;
+    } else if (isColorConfig(configValue)) {
+      // Color config resolves to string value
+      result[key] = flatValues[path] ?? configValue.default ?? '#000000';
+    } else if (isTextConfig(configValue)) {
+      // Text config resolves to string value
+      result[key] = flatValues[path] ?? configValue.default ?? '';
     } else if (typeof configValue === 'object' && configValue !== null) {
       // Nested object
       result[key] = buildResolvedValues(configValue as DialConfig, flatValues, path);
@@ -67,11 +79,31 @@ function buildResolvedValues(
   return result;
 }
 
+function hasType(value: unknown, type: string): boolean {
+  return typeof value === 'object' && value !== null && 'type' in value && (value as { type: string }).type === type;
+}
+
 function isSpringConfig(value: unknown): value is SpringConfig {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'type' in value &&
-    (value as SpringConfig).type === 'spring'
-  );
+  return hasType(value, 'spring');
+}
+
+function isActionConfig(value: unknown): value is ActionConfig {
+  return hasType(value, 'action');
+}
+
+function isSelectConfig(value: unknown): value is SelectConfig {
+  return hasType(value, 'select') && 'options' in (value as object) && Array.isArray((value as SelectConfig).options);
+}
+
+function isColorConfig(value: unknown): value is ColorConfig {
+  return hasType(value, 'color');
+}
+
+function isTextConfig(value: unknown): value is TextConfig {
+  return hasType(value, 'text');
+}
+
+function getFirstOptionValue(options: (string | { value: string; label: string })[]): string {
+  const first = options[0];
+  return typeof first === 'string' ? first : first.value;
 }
