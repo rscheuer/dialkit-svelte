@@ -378,9 +378,11 @@ export function Slider({
           animate={{
             opacity: handleOpacity,
             scaleX: isActive ? 1 : 0.25,
+            scaleY: isActive && valueDodge ? 0.75 : 1,
           }}
           transition={{
             scaleX: { type: 'spring', visualDuration: 0.25, bounce: 0.15 },
+            scaleY: { type: 'spring', visualDuration: 0.2, bounce: 0.1 },
             opacity: { duration: 0.15 },
           }}
         />

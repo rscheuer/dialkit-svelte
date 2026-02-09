@@ -290,6 +290,10 @@
   background: rgba(255, 255, 255, 0.15);
 }
 
+.dialkit-slider-active .dialkit-slider-value {
+  color: #fff;
+}
+
 .dialkit-slider-fill {
   position: absolute;
   top: 0;
@@ -357,6 +361,10 @@
   padding: 0 0 1px 0;
   outline: none;
   text-align: right;
+}
+
+.dialkit-slider-input:focus {
+  color: #fff;
 }
 
 /* Segmented Control */
@@ -657,6 +665,10 @@
   cursor: text;
 }
 
+.dialkit-text-input:focus {
+  color: #fff;
+}
+
 .dialkit-text-input::placeholder {
   color: var(--dial-text-tertiary);
 }
@@ -811,6 +823,10 @@
   outline: none;
   text-transform: uppercase;
   transform: translateY(-0.5px);
+}
+
+.dialkit-color-hex-input:focus {
+  color: #fff;
 }
 
 .dialkit-color-swatch {
