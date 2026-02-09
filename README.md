@@ -34,10 +34,16 @@ function Card() {
     blur: [24, 0, 100],
     scale: 1.2,
     color: '#ff5500',
+    visible: true,
   });
 
   return (
-    <div style={{ filter: `blur(${p.blur}px)`, color: p.color }}>
+    <div style={{
+      filter: `blur(${p.blur}px)`,
+      transform: `scale(${p.scale})`,
+      color: p.color,
+      opacity: p.visible ? 1 : 0,
+    }}>
       ...
     </div>
   );
@@ -55,95 +61,156 @@ const params = useDialKit(name, config, options?)
 | Param | Type | Description |
 |-------|------|-------------|
 | `name` | `string` | Panel title displayed in the UI |
-| `config` | `object` | Parameter definitions (see Config Types) |
+| `config` | `DialConfig` | Parameter definitions (see Control Types below) |
 | `options.onAction` | `(path: string) => void` | Callback when action buttons are clicked |
 
-**Returns** an object matching your config shape with live values.
+Returns a fully typed object matching your config shape with live values. Updating a control in the UI immediately updates the returned values.
 
 ---
 
-## Config Types
+## Control Types
 
 ### Slider
 
 ```tsx
-blur: [24, 0, 100]      // [default, min, max]
-scale: 1.2              // auto-infers range (0 to value×3)
+blur: [24, 0, 100]      // [default, min, max] — explicit range
+scale: 1.2              // auto-infers range from value
 ```
 
-Values 0–1 are treated as normalized (range stays 0–1).
+Numbers create sliders. With a tuple `[default, min, max]` you set the range explicitly. A bare number auto-infers a reasonable range:
+
+| Value range | Inferred min/max | Step |
+|-------------|-----------------|------|
+| 0–1 | 0 to 1 | 0.01 |
+| 0–10 | 0 to value &times; 3 | 0.1 |
+| 0–100 | 0 to value &times; 3 | 1 |
+| 100+ | 0 to value &times; 3 | 10 |
+
+**Returns:** `number`
+
+Sliders support click-to-snap (with spring animation), drag with rubber-band overflow, and direct text editing (hover the value for 800ms, then click to type).
 
 ### Toggle
 
 ```tsx
 enabled: true
+darkMode: false
 ```
+
+Booleans create an Off/On segmented control.
+
+**Returns:** `boolean`
 
 ### Text
 
 ```tsx
-title: 'Hello'                                    // auto-detected
-subtitle: { type: 'text', placeholder: '...' }    // explicit
+title: 'Hello'                                    // auto-detected from string
+subtitle: { type: 'text', default: '', placeholder: 'Enter subtitle...' }
 ```
 
-Non-hex strings auto-detect as text inputs.
+Non-hex strings are auto-detected as text inputs. Use the explicit form for a placeholder or to set a default.
+
+**Returns:** `string`
 
 ### Color
 
 ```tsx
-color: '#ff5500'                          // auto-detected
-bg: { type: 'color', default: '#000' }    // explicit
+color: '#ff5500'                           // auto-detected from hex string
+bg: { type: 'color', default: '#000' }     // explicit
 ```
 
-Hex strings (#RGB, #RRGGBB, #RRGGBBAA) auto-detect as color pickers.
+Hex strings (`#RGB`, `#RRGGBB`, `#RRGGBBAA`) are auto-detected as color pickers. Each color control has a text display (click to edit the hex value), and a swatch button that opens the native color picker.
+
+**Returns:** `string` (hex color)
 
 ### Select
 
 ```tsx
-theme: {
+layout: {
   type: 'select',
-  options: ['light', 'dark', 'system'],
-  default: 'dark',
+  options: ['stack', 'fan', 'grid'],
+  default: 'stack',
 }
 ```
 
-Options can be strings or `{ value, label }` objects.
+Options can be plain strings or `{ value, label }` objects for custom display text:
+
+```tsx
+shape: {
+  type: 'select',
+  options: [
+    { value: 'portrait', label: 'Portrait' },
+    { value: 'square', label: 'Square' },
+    { value: 'landscape', label: 'Landscape' },
+  ],
+  default: 'portrait',
+}
+```
+
+If `default` is omitted, the first option is selected.
+
+**Returns:** `string` (the selected option's value)
 
 ### Spring
 
 ```tsx
-// Time-based
+// Time-based (simple mode)
 spring: { type: 'spring', visualDuration: 0.3, bounce: 0.2 }
 
-// Physics-based
+// Physics-based (advanced mode)
 spring: { type: 'spring', stiffness: 200, damping: 25, mass: 1 }
 ```
 
-Visual editor with animation preview. Integrates directly with Motion.
+Creates a visual spring editor with a live animation curve preview. The editor supports two modes, toggled in the UI:
+
+- **Time** (simple) — `visualDuration` (0.1–1s) and `bounce` (0–1). Ideal for most animations.
+- **Physics** (advanced) — `stiffness` (1–1000), `damping` (1–100), and `mass` (0.1–10). Full control over spring dynamics.
+
+The returned config object is passed directly to Motion's `transition` prop:
+
+```tsx
+const p = useDialKit('Card', {
+  spring: { type: 'spring', visualDuration: 0.5, bounce: 0.04 },
+  x: [0, -200, 200],
+});
+
+<motion.div animate={{ x: p.x }} transition={p.spring} />
+```
+
+**Returns:** `SpringConfig` (pass directly to Motion)
 
 ### Action
 
 ```tsx
 const p = useDialKit('Controls', {
-  reset: { type: 'action', label: 'Reset' },
+  shuffle: { type: 'action' },
+  reset: { type: 'action', label: 'Reset All' },
 }, {
   onAction: (path) => {
-    if (path === 'reset') handleReset();
+    if (path === 'shuffle') shuffleItems();
+    if (path === 'reset') resetToDefaults();
   },
 });
 ```
+
+Action buttons trigger callbacks without storing any value. The `label` defaults to the formatted key name (camelCase becomes Title Case). Multiple adjacent actions are grouped vertically.
 
 ### Folder
 
 ```tsx
 shadow: {
   blur: [10, 0, 50],
-  color: '#000',
+  opacity: [0.25, 0, 1],
+  color: '#000000',
 }
-// Access: params.shadow.blur
 ```
 
-Nested objects become collapsible folders.
+Any nested plain object becomes a collapsible folder. Folders can nest arbitrarily deep. Access nested values with dot notation on the returned object:
+
+```tsx
+params.shadow.blur     // number
+params.shadow.color    // string
+```
 
 ---
 
@@ -157,35 +224,98 @@ Nested objects become collapsible folders.
 |------|------|---------|
 | `position` | `'top-right' \| 'top-left' \| 'bottom-right' \| 'bottom-left'` | `'top-right'` |
 
-Mount once at your app root.
+Mount once at your app root. The panel renders via a portal on `document.body`. It collapses to a small icon button and expands to 280px wide on click.
 
 ---
 
-## Features
+## Panel Toolbar
 
-**Presets** — Save/load parameter snapshots during your session. Click the Presets dropdown in the toolbar.
+When the panel is open, the toolbar provides:
 
-**Copy** — Export current values as JSON. Click the copy icon in the toolbar.
+- **Presets** — A version dropdown for saving and loading parameter snapshots. Click "+" to save the current state as a new version. Select a version to load it. Changes auto-save to the active version. "Version 1" always represents the original defaults.
+- **Copy** — Exports the current values as JSON to your clipboard.
 
-**Auto-detection** — Strings become text inputs, hex strings become color pickers.
+---
+
+## Full Example
+
+```tsx
+import { useDialKit } from 'dialkit';
+import { motion } from 'motion/react';
+
+function PhotoStack() {
+  const p = useDialKit('Photo Stack', {
+    // Text inputs
+    title: 'Japan',
+    subtitle: { type: 'text', default: 'December 2025', placeholder: 'Enter subtitle...' },
+
+    // Color pickers
+    accentColor: '#c41e3a',
+    shadowTint: { type: 'color', default: '#000000' },
+
+    // Select dropdown
+    layout: { type: 'select', options: ['stack', 'fan', 'grid'], default: 'stack' },
+
+    // Grouped sliders in a folder
+    backPhoto: {
+      offsetX: [239, 0, 400],
+      offsetY: [0, 0, 150],
+      scale: [0.7, 0.5, 0.95],
+      overlayOpacity: [0.6, 0, 1],
+    },
+
+    // Spring config for Motion
+    transitionSpring: { type: 'spring', visualDuration: 0.5, bounce: 0.04 },
+
+    // Toggle
+    darkMode: false,
+
+    // Action buttons
+    next: { type: 'action' },
+    previous: { type: 'action' },
+  }, {
+    onAction: (action) => {
+      if (action === 'next') goNext();
+      if (action === 'previous') goPrevious();
+    },
+  });
+
+  return (
+    <motion.div
+      animate={{ x: p.backPhoto.offsetX }}
+      transition={p.transitionSpring}
+      style={{ color: p.accentColor }}
+    >
+      <h1>{p.title}</h1>
+      <p>{p.subtitle}</p>
+    </motion.div>
+  );
+}
+```
 
 ---
 
 ## Types
 
+All config and value types are exported:
+
 ```tsx
 import type {
   SpringConfig,
+  ActionConfig,
   SelectConfig,
   ColorConfig,
   TextConfig,
-  ActionConfig,
   DialConfig,
+  DialValue,
   ResolvedValues,
+  ControlMeta,
+  PanelConfig,
+  Preset,
 } from 'dialkit';
 ```
 
-Values are fully typed. `params.blur` infers as `number`, `params.color` as `string`, etc.
+Return values are fully typed: `params.blur` infers as `number`, `params.color` as `string`, `params.spring` as `SpringConfig`, `params.shadow` as a nested object, etc.
 
 ---
 
