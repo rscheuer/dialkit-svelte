@@ -6,16 +6,17 @@ interface FolderProps {
   children: ReactNode;
   defaultOpen?: boolean;
   isRoot?: boolean;
+  onOpenChange?: (isOpen: boolean) => void;
 }
 
-export function Folder({ title, children, defaultOpen = true, isRoot = false }: FolderProps) {
+export function Folder({ title, children, defaultOpen = true, isRoot = false, onOpenChange }: FolderProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   const iconTransition = { type: 'spring' as const, visualDuration: 0.4, bounce: 0.1 };
 
   const folderContent = (
     <div className={`dialkit-folder ${isRoot ? 'dialkit-folder-root' : ''}`}>
-      <div className="dialkit-folder-header" onClick={() => setIsOpen(!isOpen)}>
+      <div className="dialkit-folder-header" onClick={() => { const next = !isOpen; setIsOpen(next); onOpenChange?.(next); }}>
         <div className="dialkit-folder-title-row">
           <span className={`dialkit-folder-title ${isRoot ? 'dialkit-folder-title-root' : ''}`}>
             {title}

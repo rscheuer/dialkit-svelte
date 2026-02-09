@@ -16,6 +16,12 @@ const DEAD_ZONE = 32;
 const MAX_CURSOR_RANGE = 200;
 const MAX_STRETCH = 8;
 
+function roundValue(val: number, step: number): number {
+  const decimals = step >= 1 ? 0 : 2;
+  const factor = 10 ** decimals;
+  return Math.round(val * factor) / factor;
+}
+
 function snapToDecile(rawValue: number, min: number, max: number): number {
   const normalized = (rawValue - min) / (max - min);
   const nearest = Math.round(normalized * 10) / 10;
@@ -170,7 +176,7 @@ export function Slider({
           animRef.current = null;
         }
         fillPercent.jump(newPct);
-        onChange(newValue);
+        onChange(roundValue(newValue, step));
       }
     },
     [
@@ -204,7 +210,7 @@ export function Slider({
           mass: 0.8,
           onComplete: () => { animRef.current = null; },
         });
-        onChange(snappedValue);
+        onChange(roundValue(snappedValue, step));
       }
 
       // Spring rubber band back
@@ -268,7 +274,7 @@ export function Slider({
     const parsed = parseFloat(inputValue);
     if (!isNaN(parsed)) {
       const clamped = Math.max(min, Math.min(max, parsed));
-      onChange(clamped);
+      onChange(roundValue(clamped, step));
     }
     setShowInput(false);
     setIsValueHovered(false);
