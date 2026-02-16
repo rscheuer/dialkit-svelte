@@ -87,7 +87,7 @@ export function PresetManager({ panelId, presets, activePresetId, onAdd }: Prese
           strokeWidth="2.5"
           strokeLinecap="round"
           strokeLinejoin="round"
-          animate={{ rotate: isOpen ? 180 : 0 }}
+          animate={{ rotate: isOpen ? 180 : 0, opacity: hasPresets ? 0.6 : 0.25 }}
           transition={{ type: 'spring', visualDuration: 0.2, bounce: 0.15 }}
         >
           <path d="M6 9.5L12 15.5L18 9.5" />

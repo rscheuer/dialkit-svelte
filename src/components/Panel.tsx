@@ -164,10 +164,12 @@ Apply these values as the new defaults in the useDialKit call.`;
 
   const toolbar = (
     <>
-      <button
+      <motion.button
         className="dialkit-toolbar-add"
         onClick={handleAddPreset}
         title="Add preset"
+        whileTap={{ scale: 0.9 }}
+        transition={{ type: 'spring', visualDuration: 0.15, bounce: 0.3 }}
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M4 6H20" />
@@ -176,7 +178,7 @@ Apply these values as the new defaults in the useDialKit call.`;
           <path d="M18 12V18" />
           <path d="M4 18H10" />
         </svg>
-      </button>
+      </motion.button>
 
       <PresetManager
         panelId={panel.id}
@@ -185,13 +187,15 @@ Apply these values as the new defaults in the useDialKit call.`;
         onAdd={handleAddPreset}
       />
 
-      <button
+      <motion.button
         className="dialkit-toolbar-copy"
         onClick={handleCopy}
         title="Copy parameters"
+        whileTap={{ scale: 0.95 }}
+        transition={{ type: 'spring', visualDuration: 0.15, bounce: 0.3 }}
       >
         <span className="dialkit-toolbar-copy-icon-wrap">
-          <AnimatePresence mode="popLayout">
+          <AnimatePresence initial={false} mode="popLayout">
             {copied ? (
               <motion.svg
                 key="check"
@@ -228,7 +232,7 @@ Apply these values as the new defaults in the useDialKit call.`;
           </AnimatePresence>
         </span>
         Copy
-      </button>
+      </motion.button>
     </>
   );
 
