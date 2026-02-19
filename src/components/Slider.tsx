@@ -16,10 +16,15 @@ const DEAD_ZONE = 32;
 const MAX_CURSOR_RANGE = 200;
 const MAX_STRETCH = 8;
 
-// With step=0.01, this is mathematically equivalent to the current 2-decimal rounding. 
-// With step=2, it correctly snaps to 0, 2, 4, etc. No conditional needed.
-function roundValue(val: number, step: number) {
-  return Math.round(val / step) * step;
+function decimalsForStep(step: number): number {
+  const s = step.toString();
+  const dot = s.indexOf('.');
+  return dot === -1 ? 0 : s.length - dot - 1;
+}
+
+function roundValue(val: number, step: number): number {
+  const raw = Math.round(val / step) * step;
+  return parseFloat(raw.toFixed(decimalsForStep(step)));
 }
 
 function snapToDecile(rawValue: number, min: number, max: number): number {
@@ -291,7 +296,7 @@ export function Slider({
       e.stopPropagation();
       e.preventDefault();
       setShowInput(true);
-      setInputValue(step >= 1 ? value.toFixed(0) : value.toFixed(2));
+      setInputValue(value.toFixed(decimalsForStep(step)));
     }
   };
 
@@ -308,7 +313,7 @@ export function Slider({
     handleInputSubmit();
   };
 
-  const displayValue = step >= 1 ? value.toFixed(0) : value.toFixed(2);
+  const displayValue = value.toFixed(decimalsForStep(step));
 
   // Handle opacity: not active → 0, active → 0.5, dragging → 0.9
   // Value dodge: fade when handle overlaps label (left) or value (right)
