@@ -9,6 +9,14 @@ export type SpringConfig = {
   bounce?: number;
 };
 
+export type EasingConfig = {
+  type: 'easing';
+  duration: number;
+  ease: [number, number, number, number];
+};
+
+export type TransitionConfig = SpringConfig | EasingConfig;
+
 export type ActionConfig = {
   type: 'action';
   label?: string;
@@ -31,7 +39,7 @@ export type TextConfig = {
   placeholder?: string;
 };
 
-export type DialValue = number | boolean | string | SpringConfig | ActionConfig | SelectConfig | ColorConfig | TextConfig;
+export type DialValue = number | boolean | string | SpringConfig | EasingConfig | ActionConfig | SelectConfig | ColorConfig | TextConfig;
 
 export type DialConfig = {
   [key: string]: DialValue | [number, number, number, number?] | DialConfig;
@@ -41,20 +49,22 @@ export type ResolvedValues<T extends DialConfig> = {
   [K in keyof T]: T[K] extends [number, number, number, number?]
     ? number
     : T[K] extends SpringConfig
-      ? SpringConfig
-      : T[K] extends SelectConfig
-        ? string
-        : T[K] extends ColorConfig
+      ? TransitionConfig
+      : T[K] extends EasingConfig
+        ? TransitionConfig
+        : T[K] extends SelectConfig
           ? string
-          : T[K] extends TextConfig
+          : T[K] extends ColorConfig
             ? string
-            : T[K] extends DialConfig
-              ? ResolvedValues<T[K]>
-              : T[K];
+            : T[K] extends TextConfig
+              ? string
+              : T[K] extends DialConfig
+                ? ResolvedValues<T[K]>
+                : T[K];
 };
 
 export type ControlMeta = {
-  type: 'slider' | 'toggle' | 'spring' | 'folder' | 'action' | 'select' | 'color' | 'text';
+  type: 'slider' | 'toggle' | 'spring' | 'transition' | 'folder' | 'action' | 'select' | 'color' | 'text';
   path: string;
   label: string;
   min?: number;
@@ -99,6 +109,9 @@ class DialStoreClass {
     const controls = this.parseConfig(config, '');
     const values = this.flattenValues(config, '');
 
+    // Set initial transition modes based on config types
+    this.initTransitionModes(config, '', values);
+
     this.panels.set(id, { id, name, controls, values });
     this.snapshots.set(id, { ...values });
     this.baseValues.set(id, { ...values });
@@ -135,20 +148,28 @@ class DialStoreClass {
   }
 
   updateSpringMode(panelId: string, path: string, mode: 'simple' | 'advanced'): void {
+    this.updateTransitionMode(panelId, path, mode);
+  }
+
+  getSpringMode(panelId: string, path: string): 'simple' | 'advanced' {
+    const mode = this.getTransitionMode(panelId, path);
+    if (mode === 'easing') return 'simple';
+    return mode;
+  }
+
+  updateTransitionMode(panelId: string, path: string, mode: 'easing' | 'simple' | 'advanced'): void {
     const panel = this.panels.get(panelId);
     if (!panel) return;
 
-    // Store the mode preference
     panel.values[`${path}.__mode`] = mode;
-    // Create a new snapshot reference
     this.snapshots.set(panelId, { ...panel.values });
     this.notify(panelId);
   }
 
-  getSpringMode(panelId: string, path: string): 'simple' | 'advanced' {
+  getTransitionMode(panelId: string, path: string): 'easing' | 'simple' | 'advanced' {
     const panel = this.panels.get(panelId);
     if (!panel) return 'simple';
-    return (panel.values[`${path}.__mode`] as 'simple' | 'advanced') || 'simple';
+    return (panel.values[`${path}.__mode`] as 'easing' | 'simple' | 'advanced') || 'simple';
   }
 
   getValue(panelId: string, path: string): DialValue | undefined {
@@ -282,6 +303,24 @@ class DialStoreClass {
     this.globalListeners.forEach(fn => fn());
   }
 
+  private initTransitionModes(config: DialConfig, prefix: string, values: Record<string, DialValue>): void {
+    for (const [key, value] of Object.entries(config)) {
+      if (key === '_collapsed') continue;
+      const path = prefix ? `${prefix}.${key}` : key;
+
+      if (this.isEasingConfig(value)) {
+        values[`${path}.__mode`] = 'easing';
+      } else if (this.isSpringConfig(value)) {
+        // Detect physics mode from config
+        const hasPhysics = value.stiffness !== undefined || value.damping !== undefined || value.mass !== undefined;
+        const hasTime = value.visualDuration !== undefined || value.bounce !== undefined;
+        values[`${path}.__mode`] = hasPhysics && !hasTime ? 'advanced' : 'simple';
+      } else if (typeof value === 'object' && value !== null && !Array.isArray(value) && !this.isActionConfig(value) && !this.isSelectConfig(value) && !this.isColorConfig(value) && !this.isTextConfig(value)) {
+        this.initTransitionModes(value as DialConfig, path, values);
+      }
+    }
+  }
+
   private parseConfig(config: DialConfig, prefix: string): ControlMeta[] {
     const controls: ControlMeta[] = [];
 
@@ -306,8 +345,8 @@ class DialStoreClass {
         controls.push({ type: 'slider', path, label, min, max, step });
       } else if (typeof value === 'boolean') {
         controls.push({ type: 'toggle', path, label });
-      } else if (this.isSpringConfig(value)) {
-        controls.push({ type: 'spring', path, label });
+      } else if (this.isSpringConfig(value) || this.isEasingConfig(value)) {
+        controls.push({ type: 'transition', path, label });
       } else if (this.isActionConfig(value)) {
         controls.push({ type: 'action', path, label: (value as ActionConfig).label || label });
       } else if (this.isSelectConfig(value)) {
@@ -351,7 +390,7 @@ class DialStoreClass {
         values[path] = value[0]; // Default value
       } else if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'string') {
         values[path] = value;
-      } else if (this.isSpringConfig(value)) {
+      } else if (this.isSpringConfig(value) || this.isEasingConfig(value)) {
         values[path] = value;
       } else if (this.isActionConfig(value)) {
         // Actions don't need stored values - they're just triggers
@@ -379,6 +418,15 @@ class DialStoreClass {
       value !== null &&
       'type' in value &&
       (value as SpringConfig).type === 'spring'
+    );
+  }
+
+  private isEasingConfig(value: unknown): value is EasingConfig {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      'type' in value &&
+      (value as EasingConfig).type === 'easing'
     );
   }
 

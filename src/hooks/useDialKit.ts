@@ -1,5 +1,5 @@
 import { useEffect, useId, useSyncExternalStore, useRef } from 'react';
-import { DialStore, DialConfig, DialValue, ResolvedValues, SpringConfig, SelectConfig, ColorConfig, TextConfig, ActionConfig } from '../store/DialStore';
+import { DialStore, DialConfig, DialValue, ResolvedValues, SpringConfig, EasingConfig, SelectConfig, ColorConfig, TextConfig, ActionConfig } from '../store/DialStore';
 
 export interface UseDialOptions {
   onAction?: (action: string) => void;
@@ -57,7 +57,7 @@ function buildResolvedValues(
       result[key] = flatValues[path] ?? configValue[0];
     } else if (typeof configValue === 'number' || typeof configValue === 'boolean' || typeof configValue === 'string') {
       result[key] = flatValues[path] ?? configValue;
-    } else if (isSpringConfig(configValue)) {
+    } else if (isSpringConfig(configValue) || isEasingConfig(configValue)) {
       result[key] = flatValues[path] ?? configValue;
     } else if (isActionConfig(configValue)) {
       result[key] = flatValues[path] ?? configValue;
@@ -86,6 +86,10 @@ function hasType(value: unknown, type: string): boolean {
 
 function isSpringConfig(value: unknown): value is SpringConfig {
   return hasType(value, 'spring');
+}
+
+function isEasingConfig(value: unknown): value is EasingConfig {
+  return hasType(value, 'easing');
 }
 
 function isActionConfig(value: unknown): value is ActionConfig {

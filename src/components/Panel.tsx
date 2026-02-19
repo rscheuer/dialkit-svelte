@@ -1,10 +1,11 @@
 import { useState, useSyncExternalStore } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { DialStore, ControlMeta, PanelConfig, SpringConfig } from '../store/DialStore';
+import { DialStore, ControlMeta, PanelConfig, SpringConfig, TransitionConfig } from '../store/DialStore';
 import { Folder } from './Folder';
 import { Slider } from './Slider';
 import { Toggle } from './Toggle';
 import { SpringControl } from './SpringControl';
+import { TransitionControl } from './TransitionControl';
 import { TextControl } from './TextControl';
 import { SelectControl } from './SelectControl';
 import { ColorControl } from './ColorControl';
@@ -84,6 +85,18 @@ Apply these values as the new defaults in the useDialKit call.`;
             path={control.path}
             label={control.label}
             spring={value as SpringConfig}
+            onChange={(v) => DialStore.updateValue(panel.id, control.path, v)}
+          />
+        );
+
+      case 'transition':
+        return (
+          <TransitionControl
+            key={control.path}
+            panelId={panel.id}
+            path={control.path}
+            label={control.label}
+            value={value as TransitionConfig}
             onChange={(v) => DialStore.updateValue(panel.id, control.path, v)}
           />
         );
