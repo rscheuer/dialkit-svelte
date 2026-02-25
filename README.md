@@ -206,6 +206,7 @@ const p = useDialKit('Controls', {
 ```
 
 Action buttons trigger callbacks without storing any value. The `label` defaults to the formatted key name (camelCase becomes Title Case). Multiple adjacent actions are grouped vertically.
+Action buttons can be placed at the root or nested inside folders.
 
 ### Folder
 
