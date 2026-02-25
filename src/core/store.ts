@@ -1,4 +1,4 @@
-// Lightweight state store with subscriptions for dialkit
+// Lightweight state store with subscriptions for dialkit (framework-agnostic)
 
 export type SpringConfig = {
   type: 'spring';

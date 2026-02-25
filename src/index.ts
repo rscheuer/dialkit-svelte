@@ -20,8 +20,8 @@ export { SelectControl } from './components/SelectControl';
 export { ColorControl } from './components/ColorControl';
 export { PresetManager } from './components/PresetManager';
 
-// Store (for advanced usage)
-export { DialStore } from './store/DialStore';
+// Store and core (for advanced usage)
+export { DialStore, buildResolvedValues } from 'dialkit/core';
 export type {
   SpringConfig,
   EasingConfig,
@@ -36,4 +36,4 @@ export type {
   ResolvedValues,
   ControlMeta,
   PanelConfig,
-} from './store/DialStore';
+} from 'dialkit/core';

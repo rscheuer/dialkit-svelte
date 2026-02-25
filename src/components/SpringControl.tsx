@@ -1,4 +1,4 @@
-import { SpringConfig, DialStore } from '../store/DialStore';
+import { DialStore, type SpringConfig } from '../core';
 import { Folder } from './Folder';
 import { Slider } from './Slider';
 import { SegmentedControl } from './SegmentedControl';

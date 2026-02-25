@@ -1,4 +1,4 @@
-import { SpringConfig } from '../store/DialStore';
+import type { SpringConfig } from 'dialkit/core';
 
 interface SpringVisualizationProps {
   spring: SpringConfig;

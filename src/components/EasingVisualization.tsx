@@ -1,4 +1,4 @@
-import { EasingConfig } from '../store/DialStore';
+import type { EasingConfig } from 'dialkit/core';
 
 interface EasingVisualizationProps {
   easing: EasingConfig;
